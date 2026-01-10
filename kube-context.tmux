@@ -71,6 +71,20 @@ main() {
     # Hook: Initialize KUBECONFIG when a new pane is created (for pane isolation)
     tmux set-hook -g pane-focus-in "run-shell '$CURRENT_DIR/scripts/init-pane.sh'"
     
+    # Status line refresh hooks based on isolation level
+    case "$isolation_level" in
+        pane)
+            tmux set-hook -g pane-focus-in "run-shell '$CURRENT_DIR/scripts/init-pane.sh'; refresh-client -S"
+            ;;
+        window)
+            tmux set-hook -g session-window-changed "refresh-client -S"
+            tmux set-hook -g client-session-changed "run-shell '$CURRENT_DIR/scripts/attach-session.sh'; refresh-client -S"
+            ;;
+        session)
+            tmux set-hook -g client-session-changed "run-shell '$CURRENT_DIR/scripts/attach-session.sh'; refresh-client -S"
+            ;;
+    esac
+    
     # Key binding: Switch kube context for current session (prefix + K)
     tmux bind-key K run-shell "$CURRENT_DIR/scripts/switch-context.sh"
     
