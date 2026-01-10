@@ -1,15 +1,17 @@
 # tmux-kube-context
 
-Per-session Kubernetes context isolation for tmux. Each tmux session gets its own isolated kubeconfig, preventing context switches in one session from affecting others or the global kubeconfig.
+Per-session/window/pane Kubernetes context isolation for tmux. Each tmux session, window, or pane gets its own isolated kubeconfig, preventing context switches from affecting others or the global kubeconfig.
 
 ## Features
 
-- **Session Isolation**: Each tmux session has its own kubeconfig copy
-- **Pane Inheritance**: All panes within a session share the same isolated context
-- **Global Protection**: Changes never affect `~/.kube/config` or other sessions
+- **Configurable Isolation Levels**: Choose between session, window, or pane isolation
+- **Session Isolation** (default): All panes in a session share the same context
+- **Window Isolation**: Each window has its own context, panes in same window share
+- **Pane Isolation**: Each pane has its own completely isolated context
+- **Global Protection**: Changes never affect `~/.kube/config`
 - **Context Switching**: Built-in fzf-powered context switcher
 - **Status Bar Integration**: Display current context in tmux status line
-- **Shell Integration**: Automatic KUBECONFIG setup for new panes
+- **Shell Integration**: Automatic KUBECONFIG setup for new shells
 
 ## Requirements
 
@@ -113,7 +115,13 @@ kubectl config current-context  # production
 Set in `~/.tmux.conf` before loading the plugin:
 
 ```bash
-# Directory to store session kubeconfigs (default: ~/.tmux-kube-contexts)
+# Isolation level: "session" (default), "window", or "pane"
+# - session: All panes in a session share the same context
+# - window:  Each window has its own context
+# - pane:    Each pane has its own isolated context
+set -g @kube_isolation_level "session"
+
+# Directory to store kubeconfigs (default: ~/.tmux-kube-contexts)
 set -g @kube_context_dir "~/.tmux-kube-contexts"
 
 # Base kubeconfig to copy for new sessions (default: ~/.kube/config)
@@ -124,6 +132,38 @@ set -g @kube_base_kubeconfig "~/.kube/config"
 # %n = namespace
 # %s = session name
 set -g @kube_context_format "⎈ #[fg=cyan]%c#[default]:#[fg=yellow]%n#[default]"
+```
+
+### Isolation Level Examples
+
+**Session level** (default) - good for project-based workflows:
+```
+Session: prod          Session: dev
+├── Window 1           ├── Window 1
+│   ├── Pane A [prod]  │   ├── Pane A [dev]
+│   └── Pane B [prod]  │   └── Pane B [dev]
+└── Window 2           └── Window 2
+    └── Pane C [prod]      └── Pane C [dev]
+```
+
+**Window level** - good for multi-cluster work in one session:
+```
+Session: work
+├── Window 1 (prod)
+│   ├── Pane A [prod]
+│   └── Pane B [prod]
+└── Window 2 (staging)
+    ├── Pane C [staging]
+    └── Pane D [staging]
+```
+
+**Pane level** - maximum isolation for comparing clusters:
+```
+Session: compare
+└── Window 1
+    ├── Pane A [prod]
+    ├── Pane B [staging]
+    └── Pane C [dev]
 ```
 
 ## How It Works
