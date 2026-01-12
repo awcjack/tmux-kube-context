@@ -38,13 +38,37 @@ get_kubeconfig_path() {
     esac
 }
 
+# Check if context matches production patterns
+is_production_context() {
+    local context="$1"
+    local prod_patterns
+    
+    # Get production patterns from tmux option, default to common production patterns
+    prod_patterns=$(get_tmux_option "@kube_prod_patterns" "prod,production")
+    
+    # Convert comma-separated patterns to array and check each
+    IFS=',' read -ra patterns <<< "$prod_patterns"
+    for pattern in "${patterns[@]}"; do
+        # Trim whitespace
+        pattern=$(echo "$pattern" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        # Case-insensitive match using grep
+        if echo "$context" | grep -iq "$pattern"; then
+            return 0  # true - is production
+        fi
+    done
+    
+    return 1  # false - not production
+}
+
 main() {
     local kubeconfig_path
     local current_context
     local format
+    local format_prod
     local session_name
     
     format=$(get_tmux_option "@kube_context_format" "⎈ #[fg=cyan]%c#[default]")
+    format_prod=$(get_tmux_option "@kube_context_format_prod" "⎈ #[fg=red,bold]%c#[default]")
     session_name=$(tmux display-message -p '#{session_name}')
     kubeconfig_path=$(get_kubeconfig_path)
     
@@ -66,7 +90,14 @@ main() {
     
     [ -z "$namespace" ] && namespace="default"
     
-    local output="$format"
+    # Select format based on whether context is production
+    local output
+    if is_production_context "$current_context"; then
+        output="$format_prod"
+    else
+        output="$format"
+    fi
+    
     output="${output//%c/$current_context}"
     output="${output//%n/$namespace}"
     output="${output//%s/$session_name}"

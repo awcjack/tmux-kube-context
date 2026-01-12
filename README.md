@@ -11,6 +11,7 @@ Per-session/window/pane Kubernetes context isolation for tmux. Each tmux session
 - **Global Protection**: Changes never affect `~/.kube/config`
 - **Context Switching**: Built-in fzf-powered context switcher
 - **Status Bar Integration**: Display current context in tmux status line
+- **Production Context Highlighting**: Automatically highlight production contexts in red
 - **Shell Integration**: Automatic KUBECONFIG setup for new shells
 
 ## Requirements
@@ -132,6 +133,14 @@ set -g @kube_base_kubeconfig "~/.kube/config"
 # %n = namespace
 # %s = session name
 set -g @kube_context_format "⎈ #[fg=cyan]%c#[default]:#[fg=yellow]%n#[default]"
+
+# Status line format for production contexts (default: "⎈ #[fg=red,bold]%c#[default]")
+# Applied when context name matches any production pattern
+set -g @kube_context_format_prod "⎈ #[fg=red,bold]%c#[default]:#[fg=yellow]%n#[default]"
+
+# Comma-separated patterns to identify production contexts (default: "prod,production")
+# Case-insensitive matching against context name
+set -g @kube_prod_patterns "prod,production"
 ```
 
 ### Isolation Level Examples
