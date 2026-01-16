@@ -14,9 +14,16 @@ _tmux_kube_context_init() {
     [[ -z "$base_kubeconfig" ]] && base_kubeconfig="${HOME}/.kube/config"
     
     local session_name window_index pane_index kubeconfig_path
-    session_name=$(tmux display-message -p '#{session_name}' | sed 's/[^a-zA-Z0-9_-]/_/g')
-    window_index=$(tmux display-message -p '#{window_index}')
-    pane_index=$(tmux display-message -p '#{pane_index}')
+    
+    # Get session name and validate it's not empty
+    session_name=$(tmux display-message -p '#{session_name}' 2>/dev/null)
+    if [[ -z "$session_name" ]]; then
+        return
+    fi
+    session_name=$(echo "$session_name" | sed 's/[^a-zA-Z0-9_-]/_/g')
+    
+    window_index=$(tmux display-message -p '#{window_index}' 2>/dev/null)
+    pane_index=$(tmux display-message -p '#{pane_index}' 2>/dev/null)
     
     case "$isolation_level" in
         pane)
